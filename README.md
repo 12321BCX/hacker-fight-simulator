@@ -1,30 +1,27 @@
 # Hacker Fight Simulator
 
-A beginner-friendly Roblox project for a hacker-themed arena fight game.
+This project has been simplified into a single-file Roblox installer.
 
-This repository includes:
-- a one-time installer script to generate the Roblox structure automatically
-- a server-authoritative gameplay setup
-- a client-side GUI for movement, combat, teleport, ESP, and settings
-- a reusable configuration module
+Use only this file:
+- `Installer.lua`
 
-## Project structure
+What it does:
+- creates the full game structure automatically
+- creates all needed RemoteEvents
+- creates a server script and a client script
+- creates the hacker-style UI and all core buttons
+- wires the main features together in one execution
 
-- `Installer.lua` — one-click project generator for Roblox Studio
-- `src/ReplicatedStorage/HackerFight/Modules/Config.lua` — shared settings
-- `src/ServerScriptService/HackerFightServer.lua` — authoritative gameplay logic
-- `src/StarterPlayer/HackerFightClient.lua` — GUI and client controls
-
-## Quick start
+## One-file installation
 
 1. Open Roblox Studio.
 2. Create a new Baseplate place.
 3. Open the Command Bar.
-4. Paste `Installer.lua`.
+4. Paste the entire contents of `Installer.lua`.
 5. Press Enter.
-6. Play the place in Studio.
+6. Play the game.
 
-## Features included
+## Included features
 
 - Fly
 - ESP
@@ -32,14 +29,13 @@ This repository includes:
 - TP Walk
 - Teleport to player
 - God Mode
-- Speed / Jump tweaks
-- Noclip
-- Combat validation
-- Settings UI and basic save hooks
+- Speed / Jump / Noclip
+- Dash and basic combat validation
+- Hacker UI with tabs and notifications
 
-## Important note
+## Limitation
 
-This project is designed as a clean starter project for Roblox Studio beginners. The logic is split into server and client scripts so the server remains authoritative for sensitive actions like damage, teleportation, and invulnerability.
+This is intentionally designed as a beginner-friendly single-file starter project. It prioritizes simplicity and reliability over a huge advanced architecture.
 
 ## License
 
