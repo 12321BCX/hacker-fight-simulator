@@ -1,41 +1,44 @@
 # Hacker Fight Simulator
 
-This project has been simplified into a single-file Roblox installer.
+This repository is intentionally simplified to a single-file Roblox installer.
 
-Use only this file:
+Only one file matters:
 - `Installer.lua`
 
-What it does:
-- creates the full game structure automatically
-- creates all needed RemoteEvents
-- creates a server script and a client script
-- creates the hacker-style UI and all core buttons
-- wires the main features together in one execution
+## What this repo does
 
-## One-file installation
+The installer creates the full Roblox project automatically inside Studio:
+- creates the necessary RemoteEvents
+- creates the server script
+- creates the client script
+- creates the hacker-themed UI
+- links the main gameplay features together
+
+## Install in Roblox Studio
 
 1. Open Roblox Studio.
 2. Create a new Baseplate place.
 3. Open the Command Bar.
-4. Paste the entire contents of `Installer.lua`.
+4. Paste the full contents of `Installer.lua`.
 5. Press Enter.
 6. Play the game.
 
 ## Included features
 
 - Fly
-- ESP
-- Kill Aura
+- Noclip
+- Dash
 - TP Walk
 - Teleport to player
 - God Mode
-- Speed / Jump / Noclip
-- Dash and basic combat validation
-- Hacker UI with tabs and notifications
+- Speed / Jump adjustments
+- Kill Aura
+- Server-side combat validation
+- Simple hacker UI with tabs and notifications
 
-## Limitation
+## Important note
 
-This is intentionally designed as a beginner-friendly single-file starter project. It prioritizes simplicity and reliability over a huge advanced architecture.
+This project is designed to be beginner-friendly and easy to install. It intentionally favors one-file simplicity and reliability over a large multi-file architecture.
 
 ## License
 

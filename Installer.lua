@@ -2,6 +2,7 @@
 Hacker Fight Simulator
 Single-file installer for Roblox Studio.
 Paste this into the Command Bar and run it once.
+This script creates the project automatically.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,7 +60,7 @@ for _, name in ipairs({
 	"TeleportRequest",
 	"SettingsRequest",
 	"Notify",
-	"StateSync"
+	"StateSync",
 }) do
 	EnsureRemote(remotesFolder, name)
 end
@@ -69,8 +70,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local root = ReplicatedStorage:WaitForChild("HackerFight")
-local remotes = root:WaitForChild("Remotes")
+local rootFolder = ReplicatedStorage:WaitForChild("HackerFight")
+local remotes = rootFolder:WaitForChild("Remotes")
 
 local request = remotes:WaitForChild("RequestAction")
 local combatRequest = remotes:WaitForChild("CombatRequest")
@@ -85,9 +86,7 @@ local config = {
 	TeleportCooldown = 2.5,
 	DashCooldown = 1.2,
 	GodModeDuration = 6,
-	ShieldDuration = 6,
-	HealCooldown = 10,
-	InvisibleDuration = 6,
+	TeleportToPlayerNotes = "Server-authoritative teleport",
 	DefaultSpeed = 16,
 	DefaultJump = 50,
 	DefaultFlySpeed = 30,
@@ -101,15 +100,15 @@ local function getCharacter(player)
 end
 
 local function getHumanoid(player)
-	local char = getCharacter(player)
-	if not char then return nil end
-	return char:FindFirstChildOfClass("Humanoid")
+	local character = getCharacter(player)
+	if not character then return nil end
+	return character:FindFirstChildOfClass("Humanoid")
 end
 
 local function getRootPart(player)
-	local char = getCharacter(player)
-	if not char then return nil end
-	return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("RootPart")
+	local character = getCharacter(player)
+	if not character then return nil end
+	return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("RootPart")
 end
 
 local function ensureState(player)
@@ -172,9 +171,9 @@ local function setFly(player, enabled)
 end
 
 local function setNoclip(player, enabled)
-	local char = getCharacter(player)
-	if not char then return end
-	for _, part in ipairs(char:GetDescendants()) do
+	local character = getCharacter(player)
+	if not character then return end
+	for _, part in ipairs(character:GetDescendants()) do
 		if part:IsA("BasePart") then
 			part.CanCollide = not enabled
 		end
@@ -183,33 +182,33 @@ local function setNoclip(player, enabled)
 end
 
 local function setGodMode(player, enabled)
-	local char = getCharacter(player)
-	if not char then return end
+	local character = getCharacter(player)
+	if not character then return end
 	local humanoid = getHumanoid(player)
 	if not humanoid then return end
 	if enabled then
-		char:SetAttribute("GodMode", true)
+		character:SetAttribute("GodMode", true)
 		humanoid.MaxHealth = math.huge
 		humanoid.Health = humanoid.MaxHealth
 		setState(player, "GodModeEnabled", true)
 		notify:FireClient(player, "God Mode enabled")
 		task.delay(config.GodModeDuration, function()
-			if player and player.Parent and char.Parent then
-				char:SetAttribute("GodMode", false)
+			if player and player.Parent and character.Parent then
+				character:SetAttribute("GodMode", false)
 				humanoid.MaxHealth = 100
 				humanoid.Health = math.clamp(humanoid.Health, 0, 100)
 				setState(player, "GodModeEnabled", false)
 			end
 		end)
 	else
-		char:SetAttribute("GodMode", false)
+		character:SetAttribute("GodMode", false)
 		humanoid.MaxHealth = 100
 		if humanoid.Health > 100 then humanoid.Health = 100 end
 		setState(player, "GodModeEnabled", false)
 	end
 end
 
-local function damageTarget(attacker, target, amount)
+local function damageTarget(target, amount)
 	if not target or not target.Parent then return false end
 	local humanoid = target:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return false end
@@ -272,44 +271,14 @@ local function handleAction(player, action, payload)
 		end
 		notify:FireClient(player, "Dash used")
 	elseif action == "heal" then
-		local ok = checkCooldown(player, "heal", config.HealCooldown)
+		local ok = checkCooldown(player, "heal", 10)
 		if not ok then
 			notify:FireClient(player, "Heal cooling down")
 			return
 		end
 		local humanoid = getHumanoid(player)
-		if humanoid then humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + 30) end
-	elseif action == "shield" then
-		local ok = checkCooldown(player, "shield", config.ShieldDuration)
-		if not ok then
-			notify:FireClient(player, "Shield cooling down")
-			return
-		end
-		local char = getCharacter(player)
-		if char then
-			char:SetAttribute("ShieldActive", true)
-			task.delay(config.ShieldDuration, function()
-				if char and char.Parent then char:SetAttribute("ShieldActive", false) end
-			end)
-		end
-	elseif action == "invisibility" then
-		local ok = checkCooldown(player, "invisibility", config.InvisibleDuration)
-		if not ok then
-			notify:FireClient(player, "Invisibility cooling down")
-			return
-		end
-		local char = getCharacter(player)
-		if char then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then part.Transparency = 0.7 end
-			end
-			task.delay(config.InvisibleDuration, function()
-				if char and char.Parent then
-					for _, part in ipairs(char:GetDescendants()) do
-						if part:IsA("BasePart") then part.Transparency = 0 end
-					end
-				end
-			end)
+		if humanoid then
+			humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + 30)
 		end
 	elseif action == "tp" then
 		local ok = checkCooldown(player, "teleport", config.TeleportCooldown)
@@ -322,9 +291,9 @@ local function handleAction(player, action, payload)
 			local targetName = payload and payload.target or ""
 			local target = Players:FindFirstChild(targetName)
 			if target and target ~= player then
-				local targetRoot = getRootPart(target)
 				local playerRoot = getRootPart(player)
-				if targetRoot and playerRoot then
+				local targetRoot = getRootPart(target)
+				if playerRoot and targetRoot then
 					playerRoot.CFrame = targetRoot.CFrame + Vector3.new(0, 3, 0)
 				end
 			end
@@ -359,20 +328,22 @@ combatRequest.OnServerEvent:Connect(function(player, targetName, damageMultiplie
 	end
 	local targetHumanoid = target:FindFirstChildOfClass("Humanoid")
 	if targetHumanoid and targetHumanoid.Parent and targetHumanoid.Parent:GetAttribute("GodMode") then
-		notify:FireClient(player, "Target protected")
+		notify:FireClient(player, "Target is protected")
 		return
 	end
 	local damage = config.MaxDamage * (tonumber(damageMultiplier) or 1)
-	if targetHumanoid then damageTarget(player, targetHumanoid.Parent, damage) end
+	if targetHumanoid then damageTarget(targetHumanoid.Parent, damage) end
 end)
 
 teleportRequest.OnServerEvent:Connect(function(player, kind, targetName)
 	if kind == "ToPlayer" then
 		local target = Players:FindFirstChild(targetName)
 		if target and target ~= player then
-			local pr = getRootPart(player)
-			local tr = getRootPart(target)
-			if pr and tr then pr.CFrame = tr.CFrame + Vector3.new(0, 3, 0) end
+			local playerRoot = getRootPart(player)
+			local targetRoot = getRootPart(target)
+			if playerRoot and targetRoot then
+				playerRoot.CFrame = targetRoot.CFrame + Vector3.new(0, 3, 0)
+			end
 		end
 	elseif kind == "ToSpawn" then
 		local spawn = workspace:FindFirstChild("SpawnLocation")
@@ -406,7 +377,9 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 for _, player in ipairs(Players:GetPlayers()) do
-	if player.Character then onCharacterAdded(player, player.Character) end
+	if player.Character then
+		onCharacterAdded(player, player.Character)
+	end
 end
 
 RunService.RenderStepped:Connect(function()
@@ -416,9 +389,9 @@ RunService.RenderStepped:Connect(function()
 		if root and state.FlyEnabled then
 			local bv = root:FindFirstChild("HackerFlightVelocity")
 			if bv then
-				local h = getHumanoid(player)
-				if h then
-					local move = h.MoveDirection * (state.CurrentFly or config.DefaultFlySpeed)
+				local humanoid = getHumanoid(player)
+				if humanoid then
+					local move = humanoid.MoveDirection * (state.CurrentFly or config.DefaultFlySpeed)
 					bv.Velocity = Vector3.new(move.X, 0, move.Z)
 				end
 			end
@@ -436,7 +409,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui")
 local remotes = ReplicatedStorage:WaitForChild("HackerFight"):WaitForChild("Remotes")
 
 local request = remotes:WaitForChild("RequestAction")
@@ -447,7 +420,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HackerFightGui"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
-screenGui.Parent = gui
+screenGui.Parent = playerGui
 
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 760, 0, 500)
@@ -492,7 +465,7 @@ closeButton.Size = UDim2.new(0, 30, 0, 30)
 closeButton.Position = UDim2.new(1, -38, 0.5, -15)
 closeButton.Text = "X"
 closeButton.BackgroundColor3 = Color3.fromRGB(45, 48, 52)
-closeButton.TextColor3 = Color3.fromRGB(255,255,255)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 14
 closeButton.BorderSizePixel = 0
@@ -518,20 +491,24 @@ local function createTabButton(name)
 	button.Position = UDim2.new(0, 10, 0, (#tabs * 36) + 12)
 	button.Text = name
 	button.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
-	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 12
 	button.BorderSizePixel = 0
 	button.Parent = sidebar
 	button.MouseEnter:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 48, 54)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(40, 48, 54),
+		}):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(30, 35, 40)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(30, 35, 40),
+		}):Play()
 	end)
 	button.MouseButton1Click:Connect(function()
-		for _, t in ipairs(tabs) do
-			t.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
+		for _, tabButton in ipairs(tabs) do
+			tabButton.BackgroundColor3 = Color3.fromRGB(30, 35, 40)
 		end
 		button.BackgroundColor3 = Color3.fromRGB(42, 52, 60)
 		for secName, sec in pairs(sections) do
@@ -568,7 +545,7 @@ local function addToggle(section, labelText, y, callback)
 	button.Position = UDim2.new(0, 18, 0, y)
 	button.Text = labelText .. "  OFF"
 	button.BackgroundColor3 = Color3.fromRGB(32, 38, 42)
-	button.TextColor3 = Color3.fromRGB(220,220,220)
+	button.TextColor3 = Color3.fromRGB(220, 220, 220)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 12
 	button.BorderSizePixel = 0
@@ -584,7 +561,7 @@ local function addActionButton(section, labelText, y, callback)
 	button.Size = UDim2.new(0, 180, 0, 30)
 	button.Position = UDim2.new(0, 18, 0, y)
 	button.Text = labelText
-	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
 	button.BackgroundColor3 = Color3.fromRGB(28, 35, 40)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 12
@@ -602,7 +579,7 @@ local function addSlider(section, labelText, y, key, startValue)
 	label.Position = UDim2.new(0, 18, 0, y)
 	label.Text = labelText
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(220,220,220)
+	label.TextColor3 = Color3.fromRGB(220, 220, 220)
 	label.Font = Enum.Font.GothamSemibold
 	label.TextSize = 12
 	label.Parent = section
@@ -612,7 +589,7 @@ local function addSlider(section, labelText, y, key, startValue)
 	valueButton.Position = UDim2.new(0, 158, 0, y)
 	valueButton.Text = tostring(startValue)
 	valueButton.BackgroundColor3 = Color3.fromRGB(38, 45, 49)
-	valueButton.TextColor3 = Color3.fromRGB(255,255,255)
+	valueButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 	valueButton.Font = Enum.Font.GothamBold
 	valueButton.TextSize = 12
 	valueButton.BorderSizePixel = 0
@@ -700,7 +677,9 @@ notify.OnClientEvent:Connect(function(msg)
 	stroke.Color = Color3.fromRGB(0, 255, 140)
 	stroke.Transparency = 0.3
 	stroke.Parent = popup
-	task.delay(1.8, function() if popup and popup.Parent then popup:Destroy() end end)
+	task.delay(1.8, function()
+		if popup and popup.Parent then popup:Destroy() end
+	end)
 end)
 
 UserInputService.InputBegan:Connect(function(input, processed)
